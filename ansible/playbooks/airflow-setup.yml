@@ -1,0 +1,85 @@
+---
+- name: Setup Airflow
+  hosts: airflow
+  become: yes
+  tasks:
+    # Install and configure docker
+    # TODO: Need to configure test e-mail and password encryption
+    - name: Install required packages
+      dnf:
+        name:
+          - python3-pip
+          - python3-devel
+          - gcc
+          - postgresql-devel
+        state: present
+
+    - name: Install Docker
+      dnf:
+        name: docker
+        state: present
+
+    - name: Start Docker service
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Install docker-compose
+      pip:
+        name: docker-compose
+        state: present
+
+    - name: Start Docker-compose service
+      systemd:
+        name: docker-compose
+        state: started
+        enabled: yes
+
+    - name: Create Airflow directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      with_items:
+        - /opt/airflow/dags
+        - /opt/airflow/logs
+        - /opt/airflow/plugins
+
+    # more info: https://support.google.com/a/answer/176600?hl=en
+    - name: Copy Airflow email settings
+      copy:
+        src: files/opt/airflow.cfg
+        dest: /opt/airflow/
+        mode: '0644'
+
+    - name: Copy Airflow DAG files
+      copy:
+        src: files/dags/ram_monitoring.py
+        dest: /opt/airflow/dags/
+        mode: '0644'
+
+    # Node exporter install and start
+    - name: Install Node Exporter
+      block:
+        - name: Download Node Exporter
+          get_url:
+            url: https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz
+            dest: /tmp/node_exporter.tar.gz
+
+        - name: Extract Node Exporter
+          unarchive:
+            src: /tmp/node_exporter.tar.gz
+            dest: /usr/local/bin/
+            remote_src: yes
+
+        - name: Create Node Exporter service
+          template:
+            src: templates/node_exporter.service.j2
+            dest: /etc/systemd/system/node_exporter.service
+
+        - name: Start Node Exporter
+          systemd:
+            name: node_exporter
+            state: started
+            enabled: yes

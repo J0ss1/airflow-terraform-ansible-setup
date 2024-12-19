@@ -1,0 +1,2 @@
+vault_smtp_password: "smtp_parool"
+vault_db_password: "db_parool"
