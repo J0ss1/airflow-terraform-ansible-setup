@@ -12,6 +12,13 @@
         state: present
       when: ansible_os_family == "Debian"
 
+    - name: Install Python requirements
+      pip:
+        name:
+          - docker
+          - requests
+        state: present
+
     - name: Create Airflow directories
       file:
         path: "{{ item }}"
