@@ -10,10 +10,18 @@
           - python3-devel
         state: present
 
-    - name: Add Docker repo
-      get_url:
-        url: https://download.docker.com/linux/centos/docker-ce.repo
-        dest: /etc/yum.repos.d/docker-ce.repo
+#    - name: Install Docker Compose V2
+#      get_url:
+#        url: "https://github.com/docker/compose/releases/download/v2.23.0/docker-compose-{{ ansible_system }}-{{ ansible_architecture }}"
+#        dest: /usr/local/lib/docker/cli-plugins/docker-compose
+#        mode: '0755'
+#      register: compose_binary
+
+#    - name: Create cli-plugins directory
+#      file:
+#        path: /usr/local/lib/docker/cli-plugins
+#        state: directory
+#        mode: '0755'
 
     - name: Check if Docker is installed
       command: docker --version
@@ -99,6 +107,8 @@
         mode: '0644'
 
     - name: Start Airflow containers
-      docker_compose:
-        project_src: "{{ airflow_home }}"
-        state: present
+      command: docker compose up -d
+      args:
+        chdir: "{{ airflow_home }}"
+      register: compose_result
+      changed_when: compose_result.rc == 0
