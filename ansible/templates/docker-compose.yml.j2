@@ -2,17 +2,18 @@ version: '3'
 services:
   airflow:
     image: apache/airflow:2.7.1
-    user: "${AIRFLOW_UID:-{{ airflow_user_id }}}:${AIRFLOW_GID:-{{ airflow_group_id }}}"
+    user: "50000:50000"
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=sqlite:////opt/airflow/airflow.db
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=sqlite:///opt/airflow/airflow.db
       - AIRFLOW__CORE__LOAD_EXAMPLES=false
       - AIRFLOW_HOME=/opt/airflow
     volumes:
-      - "{{ airflow_home }}/dags:/opt/airflow/dags"
-      - "{{ airflow_home }}/logs:/opt/airflow/logs"
-      - "{{ airflow_home }}/plugins:/opt/airflow/plugins"
-      - "{{ airflow_home }}/airflow.db:/opt/airflow/airflow.db"
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ./airflow.db:/opt/airflow/airflow.db
+      - ./config:/opt/airflow/config
       - ./config:/opt/airflow/config
     ports:
       - "8080:8080"
