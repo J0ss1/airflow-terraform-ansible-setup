@@ -2,69 +2,56 @@
 - name: Setup Airflow with Docker
   hosts: airflow
   become: yes
+  vars:
+    airflow_user_id: "50000"
+    airflow_group_id: "50000"
   tasks:
     - name: Install required packages
       dnf:
         name:
           - python3-pip
           - python3-devel
+          - firewalld
         state: present
 
-#    - name: Install Docker Compose V2
-#      get_url:
-#        url: "https://github.com/docker/compose/releases/download/v2.23.0/docker-compose-{{ ansible_system }}-{{ ansible_architecture }}"
-#        dest: /usr/local/lib/docker/cli-plugins/docker-compose
-#        mode: '0755'
-#      register: compose_binary
+    - name: Add Docker repo
+      get_url:
+        url: https://download.docker.com/linux/centos/docker-ce.repo
+        dest: /etc/yum.repos.d/docker-ce.repo
 
-#    - name: Create cli-plugins directory
-#      file:
-#        path: /usr/local/lib/docker/cli-plugins
-#        state: directory
-#        mode: '0755'
-
-    - name: Check if Docker is installed
-      command: docker --version
-      register: docker_version
-      ignore_errors: yes
-      changed_when: false
-
-    - name: Install Docker
+    - name: Install Docker packages
       dnf:
         name:
           - docker-ce
           - docker-ce-cli
           - containerd.io
         state: present
-      when: docker_version.rc != 0
 
     - name: Install Python requirements
       pip:
         name:
           - "docker==6.1.3"
-          - "docker-compose==1.29.2"
           - "requests>=2.31.0"
         state: present
       become: yes
       become_user: "{{ ansible_user }}"
 
-    - name: Check if docker-compose exists
-      command: docker-compose --version
-      register: docker_compose_version
-      ignore_errors: yes
-      changed_when: false
-
-    - name: Remove old docker-compose
-      pip:
-        name: docker-compose
-        state: absent
-      when: docker_compose_version.rc == 0
-
-    - name: Start and enable Docker service
+    - name: Start and enable services
       systemd:
-        name: docker
+        name: "{{ item }}"
         state: started
         enabled: yes
+        daemon_reload: yes
+      with_items:
+        - docker
+        - firewalld
+
+    - name: Configure firewall
+      firewalld:
+        port: 8080/tcp
+        permanent: yes
+        state: enabled
+      notify: Reload firewall
 
     - name: Add user to docker group
       user:
@@ -72,40 +59,12 @@
         groups: docker
         append: yes
 
-    - name: Create Airflow directories
+    - name: Create Airflow directory structure
       file:
         path: "{{ item }}"
         state: directory
-        mode: '0755'
-      with_items:
-        - "{{ airflow_home }}/dags"
-        - "{{ airflow_home }}/logs"
-        - "{{ airflow_home }}/plugins"
-
-    - name: Copy DAG files
-      copy:
-        src: "../files/dags/"
-        dest: "{{ airflow_home }}/dags/"
-        mode: '0644'
-
-    - name: Create Airflow directories with correct permissions
-      file:
-        path: "{{ item }}"
-        state: directory
-        mode: '0777'  # Ajutiselt laiemad õigused testimiseks
-        owner: "50000"  # airflow kasutaja ID containers
-        group: "50000"  # airflow grupi ID containers
-      with_items:
-        - "{{ airflow_home }}/dags"
-        - "{{ airflow_home }}/logs"
-        - "{{ airflow_home }}/plugins"
-
-    - name: Set correct permissions for Airflow directories
-      file:
-        path: "{{ item }}"
-        state: directory
-        owner: "50000"
-        group: "50000"
+        owner: "{{ airflow_user_id }}"
+        group: "{{ airflow_group_id }}"
         mode: '0775'
         recurse: yes
       with_items:
@@ -113,18 +72,38 @@
         - "{{ airflow_home }}/dags"
         - "{{ airflow_home }}/logs"
         - "{{ airflow_home }}/plugins"
+        - "{{ airflow_home }}/config"
 
-    - name: Create empty database file
+    - name: Copy DAG files
+      copy:
+        src: "../files/dags/"
+        dest: "{{ airflow_home }}/dags/"
+        owner: "{{ airflow_user_id }}"
+        group: "{{ airflow_group_id }}"
+        mode: '0644'
+
+    - name: Create and set permissions for airflow.db
       file:
         path: "{{ airflow_home }}/airflow.db"
         state: touch
-        owner: "50000"
-        group: "50000"
-        mode: '0644'
+        owner: "{{ airflow_user_id }}"
+        group: "{{ airflow_group_id }}"
+        mode: '0666'
+
+    - name: Set SELinux context for Airflow directories
+      sefcontext:
+        target: '{{ airflow_home }}(/.*)?'
+        setype: container_file_t
+        state: present
+      register: se_context
+
+    - name: Apply new SELinux context
+      command: restorecon -R {{ airflow_home }}
+      when: se_context.changed
 
     - name: Create docker-compose.yml
       template:
-        src: ../templates/docker-compose.yml.j2
+        src: "../templates/docker-compose.yml.j2"
         dest: "{{ airflow_home }}/docker-compose.yml"
         mode: '0644'
 
@@ -132,5 +111,9 @@
       command: docker compose up -d
       args:
         chdir: "{{ airflow_home }}"
-      register: compose_result
-      changed_when: compose_result.rc == 0
+
+  handlers:
+    - name: Reload firewall
+      systemd:
+        name: firewalld
+        state: reloaded

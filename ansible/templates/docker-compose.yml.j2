@@ -2,16 +2,17 @@ version: '3'
 services:
   airflow:
     image: apache/airflow:2.7.1
+    user: "${AIRFLOW_UID:-{{ airflow_user_id }}}:${AIRFLOW_GID:-{{ airflow_group_id }}}"
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=sqlite:////opt/airflow/airflow.db
       - AIRFLOW__CORE__LOAD_EXAMPLES=false
-      - AIRFLOW__CORE__FERNET_KEY=${FERNET_KEY:-}
-    user: "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}"  # User ID
+      - AIRFLOW_HOME=/opt/airflow
     volumes:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
+      - ./config:/opt/airflow/config
       - ./airflow.db:/opt/airflow/airflow.db
     ports:
       - "8080:8080"
@@ -25,4 +26,4 @@ services:
         --role Admin \
         --email admin@example.com \
         --password admin &&
-      airflow webserver"
+      airflow standalone"
