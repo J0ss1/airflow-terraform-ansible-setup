@@ -33,9 +33,9 @@
     - name: Install Python requirements
       pip:
         name:
-          - docker
-          - docker-compose
-          - requests
+          - "docker==6.1.3"
+          - "docker-compose==1.29.2"
+          - "requests>=2.31.0"
         state: present
       become: yes
       become_user: "{{ ansible_user }}"
@@ -78,6 +78,24 @@
       copy:
         src: "../files/dags/"
         dest: "{{ airflow_home }}/dags/"
+        mode: '0644'
+
+    - name: Create Airflow directories with correct permissions
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0777'  # Ajutiselt laiemad õigused testimiseks
+        owner: "50000"  # airflow kasutaja ID containers
+        group: "50000"  # airflow grupi ID containers
+      with_items:
+        - "{{ airflow_home }}/dags"
+        - "{{ airflow_home }}/logs"
+        - "{{ airflow_home }}/plugins"
+
+    - name: Create docker-compose.yml
+      template:
+        src: templates/docker-compose.yml.j2
+        dest: "{{ airflow_home }}/docker-compose.yml"
         mode: '0644'
 
     - name: Start Airflow containers

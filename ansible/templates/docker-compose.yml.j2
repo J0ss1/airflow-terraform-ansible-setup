@@ -1,18 +1,22 @@
 version: '3'
 services:
   airflow:
-    image: apache/airflow:{{ airflow_version }}
+    image: apache/airflow:2.7.1
     environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=sqlite:////opt/airflow/airflow.db
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=sqlite:////usr/local/airflow/airflow.db
-      - AIRFLOW__SMTP__SMTP_HOST={{ smtp_host }}
-      - AIRFLOW__SMTP__SMTP_PORT={{ smtp_port }}
-      - AIRFLOW__SMTP__SMTP_USER={{ smtp_user }}
-      - AIRFLOW__SMTP__SMTP_PASSWORD={{ vault_smtp_password }}
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+      - AIRFLOW__CORE__FERNET_KEY=${FERNET_KEY:-}
     volumes:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
+      - ./airflow.db:/opt/airflow/airflow.db
     ports:
       - "8080:8080"
-    command: airflow standalone
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    command: bash -c "airflow db init && airflow standalone"
