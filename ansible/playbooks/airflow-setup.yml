@@ -2,9 +2,6 @@
 - name: Setup Airflow with Docker
   hosts: airflow
   become: yes
-  vars:
-    airflow_user_id: "50000"
-    airflow_group_id: "50000"
   tasks:
     - name: Install required packages
       dnf:

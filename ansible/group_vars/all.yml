@@ -1,4 +1,10 @@
 airflow_home: /opt/airflow
+airflow_user_id: "50000"
+airflow_group_id: "50000"
+
+airflow_email: "your_email@gmail.com"
+airflow_email_password: "your_app_password"
+
 airflow_version: 2.7.1
 smtp_host: smtp.gmail.com
 smtp_port: 587
@@ -6,6 +12,6 @@ smtp_user: your_email@gmail.com
 ansible_user: jburkland
 
 # should be on vault
-
+vault_airflow_email_password: "app_password"
 vault_smtp_password: "smtp_parool"
 vault_db_password: "db_parool"
