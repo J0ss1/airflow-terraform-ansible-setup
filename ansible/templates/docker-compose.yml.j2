@@ -9,7 +9,6 @@ services:
       - AIRFLOW__CORE__LOAD_EXAMPLES=false
       - AIRFLOW_HOME=/opt/airflow
     volumes:
-    volumes:
       - "{{ airflow_home }}/dags:/opt/airflow/dags"
       - "{{ airflow_home }}/logs:/opt/airflow/logs"
       - "{{ airflow_home }}/plugins:/opt/airflow/plugins"
