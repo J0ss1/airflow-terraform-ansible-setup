@@ -34,6 +34,7 @@
       pip:
         name:
           - docker
+          - docker-compose
           - requests
         state: present
       become: yes
