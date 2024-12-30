@@ -6,10 +6,29 @@
     - name: Install required packages
       dnf:
         name:
-          - docker
           - python3-pip
           - python3-devel
         state: present
+
+    - name: Add Docker repo
+      get_url:
+        url: https://download.docker.com/linux/centos/docker-ce.repo
+        dest: /etc/yum.repos.d/docker-ce.repo
+
+    - name: Check Docker version
+      command: docker --version
+      register: docker_version
+      ignore_errors: yes
+
+    - name: Install Docker
+      dnf:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose
+        state: present
+      when: docker_version.rc != 0 or docker_version.stdout is version('20.10.0', '<')
 
     - name: Install Python requirements
       pip:
@@ -18,16 +37,16 @@
           - requests
         state: present
 
+    - name: Check docker-compose version
+      command: docker-compose --version
+      register: docker_compose_version
+      ignore_errors: yes
+
     - name: Remove old docker-compose
       pip:
         name: docker-compose
         state: absent
-
-    - name: Download docker-compose binary
-      get_url:
-        url: "https://github.com/docker/compose/releases/download/v2.23.0/docker-compose-{{ ansible_system }}-{{ ansible_architecture }}"
-        dest: /usr/local/bin/docker-compose
-        mode: '0755'
+      when: docker_compose_version.rc == 0 and docker_compose_version.stdout is version('2.22.0', '<')
 
     - name: Start and enable Docker service
       systemd:
