@@ -89,7 +89,16 @@
         state: touch
         owner: "{{ airflow_user_id }}"
         group: "{{ airflow_group_id }}"
-        mode: '0666'
+        mode: '0777'  # temperery for testing
+
+    - name: Ensure airflow.db directory has correct permissions
+      file:
+        path: "{{ airflow_home }}"
+        state: directory
+        owner: "{{ airflow_user_id }}"
+        group: "{{ airflow_group_id }}"
+        mode: '0777'
+        recurse: yes
 
     - name: Set SELinux context for Airflow directories
       sefcontext:
