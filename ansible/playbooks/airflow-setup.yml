@@ -100,6 +100,28 @@
         - "{{ airflow_home }}/logs"
         - "{{ airflow_home }}/plugins"
 
+    - name: Set correct permissions for Airflow directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "50000"
+        group: "50000"
+        mode: '0775'
+        recurse: yes
+      with_items:
+        - "{{ airflow_home }}"
+        - "{{ airflow_home }}/dags"
+        - "{{ airflow_home }}/logs"
+        - "{{ airflow_home }}/plugins"
+
+    - name: Create empty database file
+      file:
+        path: "{{ airflow_home }}/airflow.db"
+        state: touch
+        owner: "50000"
+        group: "50000"
+        mode: '0644'
+
     - name: Create docker-compose.yml
       template:
         src: ../templates/docker-compose.yml.j2
