@@ -24,7 +24,7 @@
 
     - name: Copy DAG files
       copy:
-        src: files/dags/
+        src: "{{ playbook_dir }}/../files/dags/"
         dest: "{{ airflow_home }}/dags/"
         mode: '0644'
 
