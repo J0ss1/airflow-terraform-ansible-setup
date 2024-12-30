@@ -4,15 +4,6 @@
   become: yes
   tasks:
     - name: Install required packages
-      apt:
-        name:
-          - docker.io
-          - docker-compose
-          - python3-pip
-        state: present
-      when: ansible_os_family == "Debian"
-
-    - name: Install required packages
       dnf:
         name:
           - docker
@@ -24,16 +15,31 @@
       pip:
         name:
           - docker
-          - docker-compose
           - requests
         state: present
 
-    - name: Install Python requirements
+    - name: Remove old docker-compose
       pip:
-        name:
-          - docker
-          - requests
-        state: present
+        name: docker-compose
+        state: absent
+
+    - name: Download docker-compose binary
+      get_url:
+        url: "https://github.com/docker/compose/releases/download/v2.23.0/docker-compose-{{ ansible_system }}-{{ ansible_architecture }}"
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'
+
+    - name: Start and enable Docker service
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add user to docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
 
     - name: Create Airflow directories
       file:
@@ -47,14 +53,8 @@
 
     - name: Copy DAG files
       copy:
-        src: "{{ playbook_dir }}/../files/dags/"
+        src: "../files/dags/"
         dest: "{{ airflow_home }}/dags/"
-        mode: '0644'
-
-    - name: Create docker-compose.yml
-      template:
-        src: "{{ playbook_dir }}/../templates/docker-compose.yml.j2"
-        dest: "{{ airflow_home }}/docker-compose.yml"
         mode: '0644'
 
     - name: Start Airflow containers
