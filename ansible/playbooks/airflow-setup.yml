@@ -12,6 +12,22 @@
         state: present
       when: ansible_os_family == "Debian"
 
+    - name: Install required packages
+      dnf:
+        name:
+          - docker
+          - python3-pip
+          - python3-devel
+        state: present
+
+    - name: Install Python requirements
+      pip:
+        name:
+          - docker
+          - docker-compose
+          - requests
+        state: present
+
     - name: Install Python requirements
       pip:
         name:
