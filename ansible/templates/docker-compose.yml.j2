@@ -14,7 +14,7 @@ services:
       retries: 5
 
   airflow:
-    build: .
+    image: apache/airflow:2.7.1
     user: "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}"
     environment:
       - AIRFLOW_HOME=/opt/airflow
