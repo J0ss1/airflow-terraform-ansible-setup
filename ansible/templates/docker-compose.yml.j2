@@ -1,0 +1,18 @@
+version: '3'
+services:
+  airflow:
+    image: apache/airflow:{{ airflow_version }}
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=sqlite:////usr/local/airflow/airflow.db
+      - AIRFLOW__SMTP__SMTP_HOST={{ smtp_host }}
+      - AIRFLOW__SMTP__SMTP_PORT={{ smtp_port }}
+      - AIRFLOW__SMTP__SMTP_USER={{ smtp_user }}
+      - AIRFLOW__SMTP__SMTP_PASSWORD={{ vault_smtp_password }}
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+    ports:
+      - "8080:8080"
+    command: airflow standalone

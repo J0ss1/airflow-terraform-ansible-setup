@@ -1,11 +1,5 @@
-# E-maili settings
-
+airflow_home: /opt/airflow
+airflow_version: 2.7.1
 smtp_host: smtp.gmail.com
 smtp_port: 587
 smtp_user: your_email@gmail.com
-smtp_password: "{{ vault_smtp_password }}"  #  i need vault
-
-# monitoring settings
-
-ram_threshold: 80
-check_interval: 30

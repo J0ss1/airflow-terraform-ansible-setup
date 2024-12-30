@@ -1,2 +1,2 @@
 [airflow]
-192.168.170.0 ansible_user=jburkland
+localhost ansible_connection=local

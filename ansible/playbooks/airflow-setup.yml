@@ -1,40 +1,16 @@
 ---
-- name: Setup Airflow
+- name: Setup Airflow with Docker
   hosts: airflow
   become: yes
   tasks:
-    # Install and configure docker
-    # TODO: Need to configure test e-mail and password encryption
     - name: Install required packages
-      dnf:
+      apt:
         name:
+          - docker.io
+          - docker-compose
           - python3-pip
-          - python3-devel
-          - gcc
-          - postgresql-devel
         state: present
-
-    - name: Install Docker
-      dnf:
-        name: docker
-        state: present
-
-    - name: Start Docker service
-      systemd:
-        name: docker
-        state: started
-        enabled: yes
-
-    - name: Install docker-compose
-      pip:
-        name: docker-compose
-        state: present
-
-    - name: Start Docker-compose service
-      systemd:
-        name: docker-compose
-        state: started
-        enabled: yes
+      when: ansible_os_family == "Debian"
 
     - name: Create Airflow directories
       file:
@@ -42,44 +18,23 @@
         state: directory
         mode: '0755'
       with_items:
-        - /opt/airflow/dags
-        - /opt/airflow/logs
-        - /opt/airflow/plugins
+        - "{{ airflow_home }}/dags"
+        - "{{ airflow_home }}/logs"
+        - "{{ airflow_home }}/plugins"
 
-    # more info: https://support.google.com/a/answer/176600?hl=en
-    - name: Copy Airflow email settings
+    - name: Copy DAG files
       copy:
-        src: files/opt/airflow.cfg
-        dest: /opt/airflow/
+        src: files/dags/
+        dest: "{{ airflow_home }}/dags/"
         mode: '0644'
 
-    - name: Copy Airflow DAG files
-      copy:
-        src: files/dags/ram_monitoring.py
-        dest: /opt/airflow/dags/
+    - name: Create docker-compose.yml
+      template:
+        src: templates/docker-compose.yml.j2
+        dest: "{{ airflow_home }}/docker-compose.yml"
         mode: '0644'
 
-    # Node exporter install and start
-    - name: Install Node Exporter
-      block:
-        - name: Download Node Exporter
-          get_url:
-            url: https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz
-            dest: /tmp/node_exporter.tar.gz
-
-        - name: Extract Node Exporter
-          unarchive:
-            src: /tmp/node_exporter.tar.gz
-            dest: /usr/local/bin/
-            remote_src: yes
-
-        - name: Create Node Exporter service
-          template:
-            src: templates/node_exporter.service.j2
-            dest: /etc/systemd/system/node_exporter.service
-
-        - name: Start Node Exporter
-          systemd:
-            name: node_exporter
-            state: started
-            enabled: yes
+    - name: Start Airflow containers
+      docker_compose:
+        project_src: "{{ airflow_home }}"
+        state: present
