@@ -3,6 +3,7 @@ airflow_version: 2.7.1
 smtp_host: smtp.gmail.com
 smtp_port: 587
 smtp_user: your_email@gmail.com
+ansible_user: jburkland
 
 # should be on vault
 

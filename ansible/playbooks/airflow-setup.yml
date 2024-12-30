@@ -27,7 +27,6 @@
           - docker-ce
           - docker-ce-cli
           - containerd.io
-          - docker-compose
         state: present
       when: docker_version.rc != 0
 
